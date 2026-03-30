@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Michigan Public University Dashboard</title>
+    <link rel="icon" type="image/png" href="michigan-favicon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">Statewide Comparator</p>
+        <h1>Michigan Public University Dashboard</h1>
+        <p class="hero-copy">
+          Compare validated IPEDS and College Scorecard metrics for 15 Michigan public universities,
+          plus the full historical appropriations series from 2004-05 through 2025-26.
+        </p>
+        <p class="hero-disclaimer">
+          <strong>This tool was created with AI using OpenAI Codex based on GPT-5. Please confirm all data before use.</strong>
+        </p>
+      </header>
+
+      <nav class="tab-bar" role="tablist" aria-label="Dashboard sections">
+        <button id="performanceTab" class="tab-btn active" type="button" role="tab" aria-selected="true">
+          Performance Metrics
+        </button>
+        <button id="appropriationsTab" class="tab-btn" type="button" role="tab" aria-selected="false">
+          Appropriations
+        </button>
+      </nav>
+
+      <section id="performancePanel" class="panel active" role="tabpanel">
+        <div class="layout">
+          <aside class="sidebar">
+            <section class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Metric View</h2>
+                  <p class="muted">Choose source, metric, schools, and years.</p>
+                </div>
+              </div>
+              <div class="control-stack">
+                <label>
+                  Topic
+                  <select id="metricGroupSelect"></select>
+                </label>
+                <label>
+                  Metric
+                  <select id="metricSelect"></select>
+                </label>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="list-head">
+                <div>
+                  <h3>Institutions</h3>
+                </div>
+                <div class="button-row">
+                  <button id="perfSelectAll" type="button">All</button>
+                  <button id="perfSelectNone" type="button">None</button>
+                </div>
+              </div>
+              <div id="institutionList" class="pill-grid"></div>
+            </section>
+
+            <section class="card">
+              <div class="list-head">
+                <div>
+                  <h3>Years</h3>
+                </div>
+                <div class="button-row">
+                  <button id="perfYearsAll" type="button">All</button>
+                  <button id="perfYearsNone" type="button">None</button>
+                </div>
+              </div>
+              <div id="performanceYearList" class="year-grid"></div>
+            </section>
+          </aside>
+
+          <main class="content">
+            <section class="card">
+              <div class="chart-head">
+                <div>
+                  <h2 id="performanceChartTitle">Metric trend</h2>
+                  <p id="performanceChartSubtitle" class="muted"></p>
+                </div>
+                <p class="muted">Hover points for exact values.</p>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="performanceChart"></canvas>
+                <div id="performanceTooltip" class="chart-tooltip"></div>
+              </div>
+            </section>
+
+            <section class="card collapsible-card">
+              <details id="definitionDetails" class="definition-details">
+                <summary class="definition-summary">
+                  <div class="summary-copy">
+                    <p class="eyebrow">Definition</p>
+                    <h2 id="definitionTitle">Metric definition</h2>
+                  </div>
+                  <span class="summary-hint">Show details</span>
+                </summary>
+                <div class="definition-panel-body">
+                  <div class="definition-meta">
+                    <span id="definitionSource" class="definition-chip"></span>
+                    <span id="definitionVariable" class="definition-chip"></span>
+                  </div>
+                  <p id="definitionBody" class="definition-body"></p>
+                  <p id="definitionAssumption" class="assumption-note hidden"></p>
+                </div>
+              </details>
+            </section>
+
+            <section class="card">
+              <div class="table-head">
+                <h2>Comparison table</h2>
+              </div>
+              <div class="table-wrap">
+                <table id="performanceTable">
+                  <thead></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+
+      <section id="appropriationsPanel" class="panel" role="tabpanel" hidden>
+        <div class="layout">
+          <aside class="sidebar">
+            <section class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Appropriation View</h2>
+                  <p class="muted">Full historical series across the four appropriation datasets.</p>
+                </div>
+              </div>
+              <div class="control-stack">
+                <label>
+                  Dataset
+                  <select id="appropriationDatasetSelect"></select>
+                </label>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="list-head">
+                <div>
+                  <h3>Institutions</h3>
+                  <p class="muted">Keep the full history, narrow the school list.</p>
+                </div>
+                <div class="button-row">
+                  <button id="appSelectAll" type="button">All</button>
+                  <button id="appSelectNone" type="button">None</button>
+                </div>
+              </div>
+              <div id="appropriationInstitutionList" class="pill-grid"></div>
+            </section>
+
+            <section class="card">
+              <div class="list-head">
+                <div>
+                  <h3>Years</h3>
+                  <p class="muted">Appropriations use the full published time range.</p>
+                </div>
+                <div class="button-row">
+                  <button id="appYearsAll" type="button">All</button>
+                  <button id="appYearsNone" type="button">None</button>
+                </div>
+              </div>
+              <div id="appropriationYearList" class="year-grid"></div>
+            </section>
+          </aside>
+
+          <main class="content">
+            <section class="card">
+              <div class="definition-grid">
+                <div>
+                  <p class="eyebrow">Dataset definition</p>
+                  <h2 id="appropriationDefinitionTitle">Appropriations</h2>
+                </div>
+                <div class="definition-meta">
+                  <span id="appropriationDefinitionSource" class="definition-chip"></span>
+                </div>
+              </div>
+              <p id="appropriationDefinitionBody" class="definition-body"></p>
+            </section>
+
+            <section class="card">
+              <div class="chart-head">
+                <div>
+                  <h2 id="appropriationChartTitle">Appropriations trend</h2>
+                  <p id="appropriationChartSubtitle" class="muted"></p>
+                </div>
+                <p class="muted">Hover points for exact values.</p>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="appropriationChart"></canvas>
+                <div id="appropriationTooltip" class="chart-tooltip"></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="table-head">
+                <h2>Appropriations table</h2>
+              </div>
+              <div class="table-wrap">
+                <table id="appropriationTable">
+                  <thead></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+    </div>
+
+    <script src="bundled-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
