@@ -609,16 +609,11 @@ function renderCompareMetricCharts(metrics) {
 
     const card = document.createElement("article");
     card.className = "mini-chart-card";
-    const latestYear = years.at(-1) || "No year selected";
-    const yearRange =
-      years.length > 1 ? `${years[0]} to ${years.at(-1)}` :
-      years.length === 1 ? years[0] :
-      "No year selected";
     card.innerHTML = `
       <div class="mini-chart-head">
         <div>
           <h3>${escapeHtml(metric.metric_name)}</h3>
-          <p>${escapeHtml(metric.source)} • ${escapeHtml(String(yearRange))}</p>
+          <p>${escapeHtml(metric.source)}</p>
         </div>
       </div>
       <div class="chart-wrap mini-chart-wrap">
@@ -669,7 +664,7 @@ function renderCompareMetricTable(metrics) {
   headerRow.innerHTML = `<th>Institution</th>${metricContexts
     .map(
       ({ metric, latestYear }) =>
-        `<th>${escapeHtml(metric.metric_name)}${latestYear ? `<br><span class="metric-chip-meta">${escapeHtml(latestYear)}</span>` : ""}</th>`
+        `<th title="${escapeHtml(metric.metric_name)}">${escapeHtml(metric.metric_name)}${latestYear ? ` (${escapeHtml(latestYear)})` : ""}</th>`
     )
     .join("")}`;
   thead.appendChild(headerRow);

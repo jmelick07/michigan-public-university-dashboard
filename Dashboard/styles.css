@@ -539,6 +539,7 @@ td:first-child {
 thead th {
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 tbody tr:hover td {
