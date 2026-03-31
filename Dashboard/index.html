@@ -42,14 +42,31 @@
               </div>
               <div class="control-stack">
                 <label>
+                  View
+                  <select id="performanceViewModeSelect">
+                    <option value="single">Single metric</option>
+                    <option value="compare">Compare multiple metrics</option>
+                  </select>
+                </label>
+                <label id="metricGroupLabel">
                   Topic
                   <select id="metricGroupSelect"></select>
                 </label>
-                <label>
+                <label id="metricLabel">
                   Metric
                   <select id="metricSelect"></select>
                 </label>
               </div>
+            </section>
+
+            <section id="compareMetricsCard" class="card" hidden>
+              <div class="list-head">
+                <div>
+                  <h3>Compare Metrics</h3>
+                  <p id="compareMetricSummary" class="muted">Choose multiple metrics from this topic.</p>
+                </div>
+              </div>
+              <div id="compareMetricList" class="compare-metric-list"></div>
             </section>
 
             <section class="card">
@@ -80,7 +97,7 @@
           </aside>
 
           <main class="content">
-            <section class="card">
+            <section id="singleMetricChartCard" class="card">
               <div class="chart-head">
                 <div>
                   <h2 id="performanceChartTitle">Metric trend</h2>
@@ -94,7 +111,7 @@
               </div>
             </section>
 
-            <section class="card collapsible-card">
+            <section id="definitionCard" class="card collapsible-card">
               <details id="definitionDetails" class="definition-details">
                 <summary class="definition-summary">
                   <div class="summary-copy">
@@ -114,12 +131,38 @@
               </details>
             </section>
 
-            <section class="card">
+            <section id="singleMetricTableCard" class="card">
               <div class="table-head">
                 <h2>Comparison table</h2>
               </div>
               <div class="table-wrap">
                 <table id="performanceTable">
+                  <thead></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section id="compareChartsCard" class="card compare-section" hidden>
+              <div class="chart-head">
+                <div>
+                  <h2>Metric comparison</h2>
+                  <p id="compareChartsSubtitle" class="muted"></p>
+                </div>
+                <p class="muted">Each card uses the selected institutions and years.</p>
+              </div>
+              <div id="compareMetricGrid" class="compare-metric-grid"></div>
+            </section>
+
+            <section id="compareTableCard" class="card compare-section" hidden>
+              <div class="table-head">
+                <div>
+                  <h2>Cross-metric table</h2>
+                  <p class="muted">Each metric column uses its latest visible year.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table id="compareMetricTable">
                   <thead></thead>
                   <tbody></tbody>
                 </table>

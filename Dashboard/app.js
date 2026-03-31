@@ -3,8 +3,14 @@ const appropriationsTab = document.getElementById("appropriationsTab");
 const performancePanel = document.getElementById("performancePanel");
 const appropriationsPanel = document.getElementById("appropriationsPanel");
 
+const metricGroupLabel = document.getElementById("metricGroupLabel");
+const metricLabel = document.getElementById("metricLabel");
 const metricGroupSelect = document.getElementById("metricGroupSelect");
 const metricSelect = document.getElementById("metricSelect");
+const performanceViewModeSelect = document.getElementById("performanceViewModeSelect");
+const compareMetricsCard = document.getElementById("compareMetricsCard");
+const compareMetricList = document.getElementById("compareMetricList");
+const compareMetricSummary = document.getElementById("compareMetricSummary");
 const institutionList = document.getElementById("institutionList");
 const performanceYearList = document.getElementById("performanceYearList");
 const perfSelectAll = document.getElementById("perfSelectAll");
@@ -21,6 +27,14 @@ const performanceChartSubtitle = document.getElementById("performanceChartSubtit
 const performanceChart = document.getElementById("performanceChart");
 const performanceTooltip = document.getElementById("performanceTooltip");
 const performanceTable = document.getElementById("performanceTable");
+const singleMetricChartCard = document.getElementById("singleMetricChartCard");
+const definitionCard = document.getElementById("definitionCard");
+const singleMetricTableCard = document.getElementById("singleMetricTableCard");
+const compareChartsCard = document.getElementById("compareChartsCard");
+const compareChartsSubtitle = document.getElementById("compareChartsSubtitle");
+const compareMetricGrid = document.getElementById("compareMetricGrid");
+const compareTableCard = document.getElementById("compareTableCard");
+const compareMetricTable = document.getElementById("compareMetricTable");
 
 const appropriationDatasetSelect = document.getElementById("appropriationDatasetSelect");
 const appropriationInstitutionList = document.getElementById("appropriationInstitutionList");
@@ -136,8 +150,11 @@ const appState = {
   institutions: [],
   metrics: [],
   metricGroups: [],
+  performanceViewMode: "single",
   selectedMetricGroup: "",
   selectedMetric: "",
+  selectedCompareMetrics: new Set(),
+  compareTopicOpen: new Map(),
   selectedInstitutions: new Set(),
   selectedYears: new Set(),
   performanceHover: null,
@@ -152,6 +169,7 @@ const appState = {
 
 performanceTab.addEventListener("click", () => setTab("performance"));
 appropriationsTab.addEventListener("click", () => setTab("appropriations"));
+performanceViewModeSelect.addEventListener("change", onPerformanceViewModeChange);
 metricGroupSelect.addEventListener("change", onMetricGroupChange);
 metricSelect.addEventListener("change", onMetricChange);
 perfSelectAll.addEventListener("click", () => {
@@ -165,7 +183,7 @@ perfSelectNone.addEventListener("click", () => {
   renderPerformance();
 });
 perfYearsAll.addEventListener("click", () => {
-  appState.selectedYears = new Set(getPerformanceYearsForMetric());
+  appState.selectedYears = new Set(getPerformanceYearsForCurrentView());
   renderPerformanceYears();
   renderPerformance();
 });
@@ -212,7 +230,7 @@ appropriationChart.addEventListener("mouseleave", () => {
   renderAppropriationChart();
 });
 window.addEventListener("resize", throttle(() => {
-  renderPerformanceChart();
+  renderPerformance();
   renderAppropriationChart();
 }, 100));
 
@@ -325,8 +343,15 @@ function hydrateAppropriations() {
 }
 
 function renderPerformanceControls() {
+  performanceViewModeSelect.value = appState.performanceViewMode;
+  metricGroupLabel.hidden = appState.performanceViewMode === "compare";
+  metricGroupLabel.style.display = appState.performanceViewMode === "compare" ? "none" : "";
+  metricLabel.hidden = appState.performanceViewMode === "compare";
+  metricLabel.style.display = appState.performanceViewMode === "compare" ? "none" : "";
   renderMetricGroupOptions();
   renderMetricOptions();
+  renderCompareMetricList();
+  compareMetricsCard.hidden = appState.performanceViewMode !== "compare";
   renderInstitutionList();
   renderPerformanceYears();
 }
@@ -344,22 +369,103 @@ function getMetricsForSelectedGroup() {
   );
 }
 
+function getAvailableCompareMetrics() {
+  return (appState.metrics || []).slice().sort((a, b) => {
+    if (a.metric_group !== b.metric_group) {
+      return compareTopicGroups(a.metric_group, b.metric_group);
+    }
+    return compareMetricsWithinGroup(a, b);
+  });
+}
+
+function metricKey(metric) {
+  return `${metric.source}::${metric.metric_id}`;
+}
+
+function ensureCompareMetricSelection() {
+  const metrics = getAvailableCompareMetrics();
+  const validKeys = new Set(metrics.map(metricKey));
+  appState.selectedCompareMetrics = new Set(
+    Array.from(appState.selectedCompareMetrics).filter((key) => validKeys.has(key))
+  );
+}
+
+function getSelectedCompareMetrics() {
+  ensureCompareMetricSelection();
+  return getAvailableCompareMetrics()
+    .filter((metric) => appState.selectedCompareMetrics.has(metricKey(metric)));
+}
+
 function renderMetricOptions() {
   const metrics = getMetricsForSelectedGroup();
-  if (!metrics.some((metric) => `${metric.source}::${metric.metric_id}` === appState.selectedMetric)) {
+  if (!metrics.some((metric) => metricKey(metric) === appState.selectedMetric)) {
     const first = metrics[0];
-    appState.selectedMetric = first ? `${first.source}::${first.metric_id}` : "";
+    appState.selectedMetric = first ? metricKey(first) : "";
   }
   metricSelect.innerHTML = metrics
     .sort(compareMetricsWithinGroup)
     .map(
       (metric) =>
-        `<option value="${escapeHtml(`${metric.source}::${metric.metric_id}`)}">${escapeHtml(
+        `<option value="${escapeHtml(metricKey(metric))}">${escapeHtml(
           `${metric.metric_name} (${metric.source})`
         )}</option>`
     )
     .join("");
   metricSelect.value = appState.selectedMetric;
+}
+
+function renderCompareMetricList() {
+  const metrics = getAvailableCompareMetrics();
+  ensureCompareMetricSelection();
+  compareMetricSummary.textContent = `${appState.selectedCompareMetrics.size} selected across all topics.`;
+  compareMetricList.innerHTML = "";
+  const grouped = new Map();
+  metrics.forEach((metric) => {
+    if (!grouped.has(metric.metric_group)) grouped.set(metric.metric_group, []);
+    grouped.get(metric.metric_group).push(metric);
+  });
+
+  Array.from(grouped.entries()).forEach(([group, groupMetrics]) => {
+    const details = document.createElement("details");
+    details.className = "compare-topic-group";
+    details.open = appState.compareTopicOpen.has(group) ? appState.compareTopicOpen.get(group) : false;
+    details.innerHTML = `
+      <summary class="compare-topic-summary">
+        <span>${escapeHtml(group)}</span>
+        <span class="compare-topic-count">${groupMetrics.length} metrics</span>
+      </summary>
+      <div class="compare-topic-body"></div>
+    `;
+    details.addEventListener("toggle", () => {
+      appState.compareTopicOpen.set(group, details.open);
+    });
+    const body = details.querySelector(".compare-topic-body");
+
+    groupMetrics.forEach((metric) => {
+      const key = metricKey(metric);
+      const selected = appState.selectedCompareMetrics.has(key);
+      const label = document.createElement("label");
+      label.className = `metric-chip${selected ? " selected" : ""}`;
+      label.innerHTML = `
+        <input type="checkbox" ${selected ? "checked" : ""} />
+        <span class="metric-chip-copy">
+          <span class="metric-chip-title">${escapeHtml(metric.metric_name)}</span>
+          <span class="metric-chip-meta">${escapeHtml(metric.source)}</span>
+        </span>
+      `;
+      label.querySelector("input").addEventListener("change", (event) => {
+        if (event.target.checked) appState.selectedCompareMetrics.add(key);
+        else appState.selectedCompareMetrics.delete(key);
+        renderCompareMetricList();
+        appState.selectedYears = new Set(getPerformanceYearsForCurrentView());
+        renderPerformanceYears();
+        renderPerformance();
+      });
+      body.appendChild(label);
+    });
+
+    compareMetricList.appendChild(details);
+  });
 }
 
 function renderInstitutionList() {
@@ -386,7 +492,7 @@ function renderInstitutionList() {
 
 function renderPerformanceYears() {
   performanceYearList.innerHTML = "";
-  const years = getPerformanceYearsForMetric();
+  const years = getPerformanceYearsForCurrentView();
   years.forEach((year) => {
     const selected = appState.selectedYears.has(year);
     const label = document.createElement("label");
@@ -403,6 +509,19 @@ function renderPerformanceYears() {
 }
 
 function renderPerformance() {
+  const compareMode = appState.performanceViewMode === "compare";
+  singleMetricChartCard.hidden = compareMode;
+  definitionCard.hidden = compareMode;
+  singleMetricTableCard.hidden = compareMode;
+  compareChartsCard.hidden = !compareMode;
+  compareTableCard.hidden = !compareMode;
+  compareMetricsCard.hidden = !compareMode;
+
+  if (compareMode) {
+    renderComparePerformance();
+    return;
+  }
+
   renderDefinition();
   renderPerformanceChart();
   renderPerformanceTable();
@@ -467,18 +586,127 @@ function renderPerformanceTable() {
   });
 }
 
+function renderComparePerformance() {
+  const metrics = getSelectedCompareMetrics();
+  compareChartsSubtitle.textContent = `${metrics.length} metrics • ${appState.selectedInstitutions.size} institutions`;
+  renderCompareMetricCharts(metrics);
+  renderCompareMetricTable(metrics);
+}
+
+function renderCompareMetricCharts(metrics) {
+  compareMetricGrid.innerHTML = "";
+  if (!metrics.length) {
+    compareMetricGrid.innerHTML = '<p class="muted">Select at least one metric to compare.</p>';
+    return;
+  }
+
+  metrics.forEach((metric) => {
+    const rows = getPerformanceSeriesForMetric(metric);
+    const years = getVisibleYears(
+      getPerformanceYearsForMetricMeta(metric).filter((year) => appState.selectedYears.has(year)),
+      rows
+    );
+
+    const card = document.createElement("article");
+    card.className = "mini-chart-card";
+    const latestYear = years.at(-1) || "No year selected";
+    const yearRange =
+      years.length > 1 ? `${years[0]} to ${years.at(-1)}` :
+      years.length === 1 ? years[0] :
+      "No year selected";
+    card.innerHTML = `
+      <div class="mini-chart-head">
+        <div>
+          <h3>${escapeHtml(metric.metric_name)}</h3>
+          <p>${escapeHtml(metric.source)} • ${escapeHtml(String(yearRange))}</p>
+        </div>
+      </div>
+      <div class="chart-wrap mini-chart-wrap">
+        <canvas class="mini-chart-canvas"></canvas>
+        <div class="chart-tooltip mini-chart-tooltip"></div>
+      </div>
+    `;
+    compareMetricGrid.appendChild(card);
+    const canvas = card.querySelector("canvas");
+    const tooltip = card.querySelector(".mini-chart-tooltip");
+    if (getMetricDisplayMode(metric) === "bar") {
+      drawBarChart(canvas, null, years, rows, metric, "compare");
+    } else {
+      drawLineChart(canvas, null, years, rows, metric, "compare");
+    }
+    canvas.addEventListener("mousemove", (event) => onMiniChartHover(event, canvas, tooltip));
+    canvas.addEventListener("mouseleave", () => {
+      tooltip.style.display = "none";
+    });
+  });
+}
+
+function renderCompareMetricTable(metrics) {
+  const thead = compareMetricTable.querySelector("thead");
+  const tbody = compareMetricTable.querySelector("tbody");
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  if (!metrics.length) return;
+
+  const metricContexts = metrics.map((metric) => {
+    const rows = getPerformanceSeriesForMetric(metric);
+    const years = getVisibleYears(
+      getPerformanceYearsForMetricMeta(metric).filter((year) => appState.selectedYears.has(year)),
+      rows
+    );
+    return {
+      metric,
+      rows,
+      latestYear: years.at(-1) || "",
+      valueByInstitution: new Map(
+        rows.map((row) => [row.institution, years.length ? row.values[years.at(-1)] : undefined])
+      ),
+    };
+  });
+
+  const headerRow = document.createElement("tr");
+  headerRow.innerHTML = `<th>Institution</th>${metricContexts
+    .map(
+      ({ metric, latestYear }) =>
+        `<th>${escapeHtml(metric.metric_name)}${latestYear ? `<br><span class="metric-chip-meta">${escapeHtml(latestYear)}</span>` : ""}</th>`
+    )
+    .join("")}`;
+  thead.appendChild(headerRow);
+
+  Array.from(appState.selectedInstitutions)
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((institution) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(institution)}</td>${metricContexts
+        .map(({ metric, valueByInstitution }) => `<td>${formatMetricValue(valueByInstitution.get(institution), metric)}</td>`)
+        .join("")}`;
+      tbody.appendChild(tr);
+    });
+}
+
 function onMetricGroupChange() {
   appState.selectedMetricGroup = metricGroupSelect.value;
   renderMetricOptions();
-  appState.selectedYears = new Set(getPerformanceYearsForMetric());
+  ensureCompareMetricSelection();
+  renderCompareMetricList();
+  appState.selectedYears = new Set(getPerformanceYearsForCurrentView());
   renderPerformanceYears();
   renderPerformance();
 }
 
 function onMetricChange() {
   appState.selectedMetric = metricSelect.value;
-  appState.selectedYears = new Set(getPerformanceYearsForMetric());
+  appState.selectedYears = new Set(getPerformanceYearsForCurrentView());
   renderPerformanceYears();
+  renderPerformance();
+}
+
+function onPerformanceViewModeChange() {
+  appState.performanceViewMode = performanceViewModeSelect.value;
+  ensureCompareMetricSelection();
+  appState.selectedYears = new Set(getPerformanceYearsForCurrentView());
+  renderPerformanceControls();
   renderPerformance();
 }
 
@@ -490,6 +718,10 @@ function getSelectedMetricMeta() {
 
 function getPerformanceYearsForMetric() {
   const metric = getSelectedMetricMeta();
+  return getPerformanceYearsForMetricMeta(metric);
+}
+
+function getPerformanceYearsForMetricMeta(metric) {
   if (!metric) return [];
   const yearSet = new Set();
   const populatedYears = new Set();
@@ -506,8 +738,23 @@ function getPerformanceYearsForMetric() {
   return years;
 }
 
+function getPerformanceYearsForCurrentView() {
+  if (appState.performanceViewMode !== "compare") {
+    return getPerformanceYearsForMetric();
+  }
+  const yearSet = new Set();
+  getSelectedCompareMetrics().forEach((metric) => {
+    getPerformanceYearsForMetricMeta(metric).forEach((year) => yearSet.add(year));
+  });
+  return Array.from(yearSet).sort();
+}
+
 function getPerformanceSeries() {
   const metric = getSelectedMetricMeta();
+  return getPerformanceSeriesForMetric(metric);
+}
+
+function getPerformanceSeriesForMetric(metric) {
   if (!metric) return [];
   const grouped = new Map();
   appState.performanceRows.forEach((row) => {
@@ -664,9 +911,12 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
     return;
   }
 
-  const padding = { top: 24, right: 18, bottom: 56, left: 82 };
+  const padding = mode === "compare"
+    ? { top: 20, right: 14, bottom: 14, left: 28 }
+    : { top: 24, right: 18, bottom: 56, left: 82 };
   const chartWidth = cssWidth - padding.left - padding.right;
   const chartHeight = cssHeight - padding.top - padding.bottom;
+  const axisFont = mode === "compare" ? "13px Inter, sans-serif" : "12px Inter, sans-serif";
   const values = rows.flatMap((row) => years.map((year) => row.values[year])).filter((value) => Number.isFinite(value));
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -681,9 +931,13 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
     ctx.moveTo(padding.left, y);
     ctx.lineTo(padding.left + chartWidth, y);
     ctx.stroke();
-    ctx.fillStyle = "#5e6d84";
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText(formatMetricValue(value, metric, true), 10, y + 4);
+    if (mode !== "compare") {
+      ctx.fillStyle = "#5e6d84";
+      ctx.font = axisFont;
+      ctx.textAlign = "right";
+      ctx.fillText(formatAxisTickValue(value, metric, mode), padding.left - 10, y + 4);
+      ctx.textAlign = "left";
+    }
   }
 
   ctx.strokeStyle = "rgba(16, 39, 78, 0.18)";
@@ -693,19 +947,24 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
   ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.fillStyle = "#5e6d84";
-  ctx.font = "12px Inter, sans-serif";
-  years.forEach((year, index) => {
-    const x = padding.left + (chartWidth * index) / Math.max(years.length - 1, 1);
-    const label = String(year);
-    const textWidth = ctx.measureText(label).width;
-    const minX = padding.left;
-    const maxX = padding.left + chartWidth - textWidth;
-    const labelX = Math.max(minX, Math.min(x - textWidth / 2, maxX));
-    ctx.fillText(label, labelX, padding.top + chartHeight + 22);
-  });
+  if (mode !== "compare") {
+    ctx.fillStyle = "#5e6d84";
+    ctx.font = axisFont;
+    years.forEach((year, index) => {
+      const x = padding.left + (chartWidth * index) / Math.max(years.length - 1, 1);
+      const label = formatChartAxisLabel(year, mode);
+      const textWidth = ctx.measureText(label).width;
+      const minX = padding.left;
+      const maxX = padding.left + chartWidth - textWidth;
+      const labelX = Math.max(minX, Math.min(x - textWidth / 2, maxX));
+      ctx.fillText(label, labelX, padding.top + chartHeight + 22);
+    });
+  }
 
-  const hoverIndex = mode === "performance" ? appState.performanceHover : appState.appropriationHover;
+  const hoverIndex =
+    mode === "performance" ? appState.performanceHover :
+    mode === "appropriation" ? appState.appropriationHover :
+    null;
 
   rows.forEach((row, index) => {
     const color = colorForInstitution(row.institution);
@@ -781,14 +1040,20 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
     return;
   }
 
-  const padding = { top: 24, right: 18, bottom: 84, left: 82 };
+  const padding = mode === "compare"
+    ? { top: 20, right: 14, bottom: 34, left: 28 }
+    : { top: 24, right: 18, bottom: 84, left: 82 };
   const chartWidth = cssWidth - padding.left - padding.right;
   const chartHeight = cssHeight - padding.top - padding.bottom;
+  const axisFont = mode === "compare" ? "13px Inter, sans-serif" : "12px Inter, sans-serif";
   const max = Math.max(...bars.map((bar) => bar.value));
   const scale = niceScale(0, max, 5);
   const stepWidth = chartWidth / bars.length;
   const barWidth = Math.max(14, Math.min(42, stepWidth * 0.62));
-  const hoverIndex = mode === "performance" ? appState.performanceHover : appState.appropriationHover;
+  const hoverIndex =
+    mode === "performance" ? appState.performanceHover :
+    mode === "appropriation" ? appState.appropriationHover :
+    null;
 
   ctx.strokeStyle = "rgba(16, 39, 78, 0.12)";
   ctx.lineWidth = 1;
@@ -799,9 +1064,13 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
     ctx.moveTo(padding.left, y);
     ctx.lineTo(padding.left + chartWidth, y);
     ctx.stroke();
-    ctx.fillStyle = "#5e6d84";
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText(formatMetricValue(value, metric, true), 10, y + 4);
+    if (mode !== "compare") {
+      ctx.fillStyle = "#5e6d84";
+      ctx.font = axisFont;
+      ctx.textAlign = "right";
+      ctx.fillText(formatAxisTickValue(value, metric, mode), padding.left - 10, y + 4);
+      ctx.textAlign = "left";
+    }
   }
 
   ctx.strokeStyle = "rgba(16, 39, 78, 0.18)";
@@ -825,11 +1094,11 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#5e6d84";
-    ctx.font = "12px Inter, sans-serif";
+    ctx.font = mode === "compare" ? "13px Inter, sans-serif" : "12px Inter, sans-serif";
     ctx.translate(centerX, padding.top + chartHeight + 16);
-    ctx.rotate(-Math.PI / 4);
+    ctx.rotate(mode === "compare" ? -Math.PI / 6 : -Math.PI / 4);
     ctx.textAlign = "right";
-    ctx.fillText(shortLabel(bar.institution), 0, 0);
+    ctx.fillText(formatChartInstitutionLabel(bar.institution, mode), 0, 0);
     ctx.restore();
   });
   ctx.globalAlpha = 1;
@@ -959,6 +1228,70 @@ function onChartHover(event, mode) {
   tooltip.style.transform = `translate(${left - best.px}px, ${top - best.py}px)`;
 }
 
+function onMiniChartHover(event, canvas, tooltip) {
+  const chartState = JSON.parse(canvas.dataset.chartState || "{}");
+  if (!chartState.years?.length || !chartState.rows?.length) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  let best = null;
+
+  if (chartState.chartType === "bar") {
+    chartState.rows.forEach((row, rowIndex) => {
+      const centerX = chartState.padding.left + chartState.stepWidth * rowIndex + chartState.stepWidth / 2;
+      const barHeight = ((row.value - chartState.scale.min) / (chartState.scale.max - chartState.scale.min || 1)) * chartState.height;
+      const left = centerX - chartState.barWidth / 2;
+      const top = chartState.padding.top + chartState.height - barHeight;
+      const right = left + chartState.barWidth;
+      const bottom = chartState.padding.top + chartState.height;
+      const inside = x >= left && x <= right && y >= top && y <= bottom;
+      const dist = inside ? 0 : Math.hypot(Math.max(left - x, 0, x - right), Math.max(top - y, 0, y - bottom));
+      if (!best || dist < best.dist) {
+        best = { dist, px: centerX, py: top, institution: row.institution, value: row.value, year: chartState.years[0] };
+      }
+    });
+  } else {
+    chartState.rows.forEach((row) => {
+      chartState.years.forEach((year, yearIndex) => {
+        const value = row.values[year];
+        if (!Number.isFinite(value)) return;
+        const px = chartState.padding.left + (chartState.width * yearIndex) / Math.max(chartState.years.length - 1, 1);
+        const py =
+          chartState.padding.top +
+          ((chartState.scale.max - value) / (chartState.scale.max - chartState.scale.min || 1)) * chartState.height;
+        const dist = Math.hypot(px - x, py - y);
+        if (!best || dist < best.dist) {
+          best = { dist, px, py, institution: row.institution, value, year };
+        }
+      });
+    });
+  }
+
+  if (!best || best.dist > 28) {
+    tooltip.style.display = "none";
+    return;
+  }
+
+  tooltip.textContent = `${shortLabel(best.institution)} • ${best.year}: ${formatMetricValue(best.value, chartState.metric, true)}`;
+  tooltip.style.display = "block";
+  tooltip.style.left = `${best.px}px`;
+  tooltip.style.top = `${best.py}px`;
+  tooltip.style.transform = "translate(-50%, calc(-100% - 12px))";
+
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const minLeft = 8;
+  const maxLeft = rect.width - tooltipRect.width - 8;
+  let left = best.px - tooltipRect.width / 2;
+  left = Math.max(minLeft, Math.min(left, maxLeft));
+
+  let top = best.py - tooltipRect.height - 12;
+  if (top < 8) top = best.py + 12;
+
+  tooltip.style.transform = `translate(${left - best.px}px, ${top - best.py}px)`;
+}
+
 function setTab(tab) {
   const isPerformance = tab === "performance";
   performanceTab.classList.toggle("active", isPerformance);
@@ -969,6 +1302,18 @@ function setTab(tab) {
   appropriationsPanel.classList.toggle("active", !isPerformance);
   performanceTab.setAttribute("aria-selected", String(isPerformance));
   appropriationsTab.setAttribute("aria-selected", String(!isPerformance));
+}
+
+function formatChartAxisLabel(label, mode) {
+  const value = String(label ?? "");
+  if (mode === "compare" && /^\d{4}-\d{2}$/.test(value)) {
+    return value.slice(2);
+  }
+  return value;
+}
+
+function formatChartInstitutionLabel(institution, mode) {
+  return mode === "compare" ? shortLabel(institution) : institution;
 }
 
 function getMetricDisplayMode(metric) {
@@ -991,6 +1336,21 @@ function formatMetricValue(value, metric, numericInput = false) {
   }
   if (Math.abs(number) >= 1000) return number.toLocaleString(undefined, { maximumFractionDigits: 0 });
   return number.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatAxisTickValue(value, metric, mode = "performance") {
+  if (!Number.isFinite(value)) return "";
+  const format = metric.value_unit === "USD" || metric.format === "currency"
+    ? "currency"
+    : metric.value_unit === "pct" || metric.format === "percent"
+      ? "percent"
+      : metric.format || "number";
+  if (format === "currency") return `$${Math.round(value).toLocaleString()}`;
+  if (format === "percent") {
+    const percentValue = Math.abs(value) <= 1 ? value * 100 : value;
+    return mode === "compare" ? `${Math.round(percentValue)}` : `${Math.round(percentValue)}%`;
+  }
+  return Math.round(value).toLocaleString();
 }
 
 function inferMetricUnit(metricName) {
