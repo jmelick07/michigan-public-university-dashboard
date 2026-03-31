@@ -436,7 +436,11 @@ function renderPerformanceChart() {
   performanceChartTitle.textContent = metric.metric_name;
   performanceChartSubtitle.textContent = `${rows.length} institutions • ${years.length} years • ${metric.source}`;
   appState.performanceChartCache = { years, rows, metric };
-  drawLineChart(performanceChart, performanceTooltip, years, rows, metric, "performance");
+  if (getMetricDisplayMode(metric) === "bar") {
+    drawBarChart(performanceChart, performanceTooltip, years, rows, metric, "performance");
+  } else {
+    drawLineChart(performanceChart, performanceTooltip, years, rows, metric, "performance");
+  }
 }
 
 function renderPerformanceTable() {
@@ -488,10 +492,18 @@ function getPerformanceYearsForMetric() {
   const metric = getSelectedMetricMeta();
   if (!metric) return [];
   const yearSet = new Set();
+  const populatedYears = new Set();
   appState.performanceRows.forEach((row) => {
-    if (row.source === metric.source && row.metric_id === metric.metric_id) yearSet.add(row.year);
+    if (row.source === metric.source && row.metric_id === metric.metric_id) {
+      yearSet.add(row.year);
+      if (Number.isFinite(row.value_num)) populatedYears.add(row.year);
+    }
   });
-  return Array.from(yearSet).sort();
+  const years = Array.from(yearSet).sort();
+  if (getMetricDisplayMode(metric) === "bar" && populatedYears.size) {
+    return [Array.from(populatedYears).sort().at(-1)];
+  }
+  return years;
 }
 
 function getPerformanceSeries() {
@@ -731,6 +743,7 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
   ctx.globalAlpha = 1;
 
   canvas.dataset.chartState = JSON.stringify({
+    chartType: "line",
     years,
     rows: rows.map((row) => ({ institution: row.institution, values: row.values })),
     metric,
@@ -739,6 +752,100 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
     height: chartHeight,
     scale,
     mode,
+  });
+}
+
+function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
+  const ctx = canvas.getContext("2d");
+  const cssWidth = canvas.clientWidth || 960;
+  const cssHeight = canvas.clientHeight || 360;
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(cssWidth * ratio);
+  canvas.height = Math.floor(cssHeight * ratio);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const latestYear = years.at(-1);
+  const bars = rows
+    .map((row) => ({
+      institution: row.institution,
+      value: row.values[latestYear],
+    }))
+    .filter((row) => Number.isFinite(row.value))
+    .sort((a, b) => b.value - a.value);
+
+  if (!latestYear || !bars.length) {
+    ctx.fillStyle = "#5e6d84";
+    ctx.font = "14px Inter, sans-serif";
+    ctx.fillText("No data to display for the current selection.", 24, 40);
+    return;
+  }
+
+  const padding = { top: 24, right: 18, bottom: 84, left: 82 };
+  const chartWidth = cssWidth - padding.left - padding.right;
+  const chartHeight = cssHeight - padding.top - padding.bottom;
+  const max = Math.max(...bars.map((bar) => bar.value));
+  const scale = niceScale(0, max, 5);
+  const stepWidth = chartWidth / bars.length;
+  const barWidth = Math.max(14, Math.min(42, stepWidth * 0.62));
+  const hoverIndex = mode === "performance" ? appState.performanceHover : appState.appropriationHover;
+
+  ctx.strokeStyle = "rgba(16, 39, 78, 0.12)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= scale.steps; i += 1) {
+    const value = scale.max - scale.step * i;
+    const y = padding.top + (chartHeight * i) / scale.steps;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + chartWidth, y);
+    ctx.stroke();
+    ctx.fillStyle = "#5e6d84";
+    ctx.font = "12px Inter, sans-serif";
+    ctx.fillText(formatMetricValue(value, metric, true), 10, y + 4);
+  }
+
+  ctx.strokeStyle = "rgba(16, 39, 78, 0.18)";
+  ctx.beginPath();
+  ctx.moveTo(padding.left, padding.top);
+  ctx.lineTo(padding.left, padding.top + chartHeight);
+  ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+  ctx.stroke();
+
+  bars.forEach((bar, index) => {
+    const centerX = padding.left + stepWidth * index + stepWidth / 2;
+    const barHeight = ((bar.value - scale.min) / (scale.max - scale.min || 1)) * chartHeight;
+    const x = centerX - barWidth / 2;
+    const y = padding.top + chartHeight - barHeight;
+    const color = colorForInstitution(bar.institution);
+    const isMuted = hoverIndex !== null && hoverIndex !== index;
+    ctx.globalAlpha = isMuted ? 0.2 : 1;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, barWidth, barHeight);
+
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#5e6d84";
+    ctx.font = "12px Inter, sans-serif";
+    ctx.translate(centerX, padding.top + chartHeight + 16);
+    ctx.rotate(-Math.PI / 4);
+    ctx.textAlign = "right";
+    ctx.fillText(shortLabel(bar.institution), 0, 0);
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+
+  canvas.dataset.chartState = JSON.stringify({
+    chartType: "bar",
+    years: [latestYear],
+    rows: bars,
+    metric,
+    padding,
+    width: chartWidth,
+    height: chartHeight,
+    scale,
+    mode,
+    barWidth,
+    stepWidth,
   });
 }
 
@@ -758,6 +865,53 @@ function onChartHover(event, mode) {
   const y = event.clientY - rect.top;
   const xScaled = x;
   const yScaled = y;
+
+  if (chartState.chartType === "bar") {
+    let best = null;
+    chartState.rows.forEach((row, rowIndex) => {
+      const centerX = chartState.padding.left + chartState.stepWidth * rowIndex + chartState.stepWidth / 2;
+      const barHeight = ((row.value - chartState.scale.min) / (chartState.scale.max - chartState.scale.min || 1)) * chartState.height;
+      const left = centerX - chartState.barWidth / 2;
+      const top = chartState.padding.top + chartState.height - barHeight;
+      const right = left + chartState.barWidth;
+      const bottom = chartState.padding.top + chartState.height;
+      const inside = xScaled >= left && xScaled <= right && yScaled >= top && yScaled <= bottom;
+      const dist = inside ? 0 : Math.hypot(Math.max(left - xScaled, 0, xScaled - right), Math.max(top - yScaled, 0, yScaled - bottom));
+      if (!best || dist < best.dist) {
+        best = { dist, px: centerX, py: top, rowIndex, institution: row.institution, value: row.value, year: chartState.years[0] };
+      }
+    });
+
+    if (!best || best.dist > 28) {
+      appState[stateKey] = null;
+      tooltip.style.display = "none";
+      if (mode === "performance") renderPerformanceChart();
+      else renderAppropriationChart();
+      return;
+    }
+
+    appState[stateKey] = best.rowIndex;
+    if (mode === "performance") renderPerformanceChart();
+    else renderAppropriationChart();
+
+    tooltip.textContent = `${shortLabel(best.institution)} • ${best.year}: ${formatMetricValue(best.value, chartState.metric, true)}`;
+    tooltip.style.display = "block";
+    tooltip.style.left = `${best.px}px`;
+    tooltip.style.top = `${best.py}px`;
+    tooltip.style.transform = "translate(-50%, calc(-100% - 12px))";
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const minLeft = 8;
+    const maxLeft = rect.width - tooltipRect.width - 8;
+    let left = best.px - tooltipRect.width / 2;
+    left = Math.max(minLeft, Math.min(left, maxLeft));
+
+    let top = best.py - tooltipRect.height - 12;
+    if (top < 8) top = best.py + 12;
+
+    tooltip.style.transform = `translate(${left - best.px}px, ${top - best.py}px)`;
+    return;
+  }
 
   let best = null;
   chartState.rows.forEach((row, rowIndex) => {
@@ -815,6 +969,11 @@ function setTab(tab) {
   appropriationsPanel.classList.toggle("active", !isPerformance);
   performanceTab.setAttribute("aria-selected", String(isPerformance));
   appropriationsTab.setAttribute("aria-selected", String(!isPerformance));
+}
+
+function getMetricDisplayMode(metric) {
+  if (!metric) return "line";
+  return metric.metric_name === "Median Earnings" ? "bar" : "line";
 }
 
 function formatMetricValue(value, metric, numericInput = false) {
