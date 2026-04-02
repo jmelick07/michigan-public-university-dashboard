@@ -1401,6 +1401,7 @@ function normalizeTopic(topic) {
 function normalizeTopicFromName(lower) {
   if (lower.includes("overall graduation rate within 150 percent of normal time")) return "Outcomes";
   if (lower.includes("admitted")) return "Students";
+  if (lower.includes("percent of full-time first-time undergraduates awarded pell grants")) return "Students";
   if (lower.includes("price")) return "Cost";
   if (lower.includes("grant aid")) return "Cost";
   if (lower.includes("pell")) return "Cost";
