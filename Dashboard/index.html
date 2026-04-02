@@ -10,25 +10,29 @@
   <body>
     <div class="page-shell">
       <header class="hero">
-        <p class="eyebrow">Statewide Comparator</p>
-        <h1>Michigan Public University Dashboard</h1>
-        <p class="hero-copy">
-          Compare validated IPEDS and College Scorecard metrics for 15 Michigan public universities,
-          plus the full historical appropriations series from 2004-05 through 2025-26.
-        </p>
+        <div class="hero-topline">
+          <div class="hero-copy-block">
+            <h1>Michigan Public University Dashboard</h1>
+            <p class="hero-copy">
+              Compare validated IPEDS and College Scorecard metrics for 15 Michigan public universities,
+              plus the full historical appropriations series from 2004-05 through 2025-26.
+            </p>
+          </div>
+          <nav class="tab-bar tab-bar-header" role="tablist" aria-label="Dashboard sections">
+            <button id="performanceTab" class="tab-btn active" type="button" role="tab" aria-selected="true">
+              <span class="tab-btn-title">Performance</span>
+              <span class="tab-btn-copy">Metrics dashboard</span>
+            </button>
+            <button id="appropriationsTab" class="tab-btn" type="button" role="tab" aria-selected="false">
+              <span class="tab-btn-title">Appropriations</span>
+              <span class="tab-btn-copy">Funding history</span>
+            </button>
+          </nav>
+        </div>
         <p class="hero-disclaimer">
           <strong>This tool was created with AI using OpenAI Codex based on GPT-5. Please confirm all data before use.</strong>
         </p>
       </header>
-
-      <nav class="tab-bar" role="tablist" aria-label="Dashboard sections">
-        <button id="performanceTab" class="tab-btn active" type="button" role="tab" aria-selected="true">
-          Performance Metrics
-        </button>
-        <button id="appropriationsTab" class="tab-btn" type="button" role="tab" aria-selected="false">
-          Appropriations
-        </button>
-      </nav>
 
       <section id="performancePanel" class="panel active" role="tabpanel">
         <div class="layout">
