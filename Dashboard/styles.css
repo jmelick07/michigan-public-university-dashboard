@@ -214,7 +214,7 @@ h3 {
 .definition-grid {
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
   gap: 12px;
 }
 
@@ -253,7 +253,9 @@ input[type="text"] {
 .button-row {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .metric-search-results {
@@ -644,7 +646,13 @@ th,
 td {
   padding: 12px 10px;
   border-bottom: 1px solid rgba(16, 39, 78, 0.08);
+  border-right: 1px solid rgba(16, 39, 78, 0.08);
   text-align: right;
+}
+
+th:last-child,
+td:last-child {
+  border-right: none;
 }
 
 th:first-child,
