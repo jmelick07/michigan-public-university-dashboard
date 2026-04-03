@@ -64,42 +64,43 @@
                 </label>
               </div>
             </section>
+            <div class="sidebar-scroll">
+              <section id="compareMetricsCard" class="card" hidden>
+                <div class="list-head">
+                  <div>
+                    <h3>Compare Metrics</h3>
+                    <p id="compareMetricSummary" class="muted">Choose multiple metrics from this topic.</p>
+                  </div>
+                </div>
+                <div id="compareMetricList" class="compare-metric-list"></div>
+              </section>
 
-            <section id="compareMetricsCard" class="card" hidden>
-              <div class="list-head">
-                <div>
-                  <h3>Compare Metrics</h3>
-                  <p id="compareMetricSummary" class="muted">Choose multiple metrics from this topic.</p>
+              <section class="card">
+                <div class="list-head">
+                  <div>
+                    <h3>Institutions</h3>
+                  </div>
+                  <div class="button-row">
+                    <button id="perfSelectAll" type="button">All</button>
+                    <button id="perfSelectNone" type="button">None</button>
+                  </div>
                 </div>
-              </div>
-              <div id="compareMetricList" class="compare-metric-list"></div>
-            </section>
+                <div id="institutionList" class="pill-grid"></div>
+              </section>
 
-            <section class="card">
-              <div class="list-head">
-                <div>
-                  <h3>Institutions</h3>
+              <section class="card">
+                <div class="list-head">
+                  <div>
+                    <h3>Years</h3>
+                  </div>
+                  <div class="button-row">
+                    <button id="perfYearsAll" type="button">All</button>
+                    <button id="perfYearsNone" type="button">None</button>
+                  </div>
                 </div>
-                <div class="button-row">
-                  <button id="perfSelectAll" type="button">All</button>
-                  <button id="perfSelectNone" type="button">None</button>
-                </div>
-              </div>
-              <div id="institutionList" class="pill-grid"></div>
-            </section>
-
-            <section class="card">
-              <div class="list-head">
-                <div>
-                  <h3>Years</h3>
-                </div>
-                <div class="button-row">
-                  <button id="perfYearsAll" type="button">All</button>
-                  <button id="perfYearsNone" type="button">None</button>
-                </div>
-              </div>
-              <div id="performanceYearList" class="year-grid"></div>
-            </section>
+                <div id="performanceYearList" class="year-grid"></div>
+              </section>
+            </div>
           </aside>
 
           <main class="content">
@@ -194,32 +195,33 @@
                 </label>
               </div>
             </section>
+            <div class="sidebar-scroll">
+              <section class="card">
+                <div class="list-head">
+                  <div>
+                    <h3>Institutions</h3>
+                  </div>
+                  <div class="button-row">
+                    <button id="appSelectAll" type="button">All</button>
+                    <button id="appSelectNone" type="button">None</button>
+                  </div>
+                </div>
+                <div id="appropriationInstitutionList" class="pill-grid"></div>
+              </section>
 
-            <section class="card">
-              <div class="list-head">
-                <div>
-                  <h3>Institutions</h3>
+              <section class="card">
+                <div class="list-head">
+                  <div>
+                    <h3>Years</h3>
+                  </div>
+                  <div class="button-row">
+                    <button id="appYearsAll" type="button">All</button>
+                    <button id="appYearsNone" type="button">None</button>
+                  </div>
                 </div>
-                <div class="button-row">
-                  <button id="appSelectAll" type="button">All</button>
-                  <button id="appSelectNone" type="button">None</button>
-                </div>
-              </div>
-              <div id="appropriationInstitutionList" class="pill-grid"></div>
-            </section>
-
-            <section class="card">
-              <div class="list-head">
-                <div>
-                  <h3>Years</h3>
-                </div>
-                <div class="button-row">
-                  <button id="appYearsAll" type="button">All</button>
-                  <button id="appYearsNone" type="button">None</button>
-                </div>
-              </div>
-              <div id="appropriationYearList" class="year-grid"></div>
-            </section>
+                <div id="appropriationYearList" class="year-grid"></div>
+              </section>
+            </div>
           </aside>
 
           <main class="content">
