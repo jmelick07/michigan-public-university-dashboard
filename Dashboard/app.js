@@ -240,9 +240,13 @@ appropriationChart.addEventListener("mouseleave", () => {
   renderAppropriationChart();
 });
 window.addEventListener("resize", throttle(() => {
+  positionMetricSearchResults();
   renderPerformance();
   renderAppropriationChart();
 }, 100));
+window.addEventListener("scroll", throttle(() => {
+  positionMetricSearchResults();
+}, 24), true);
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".metric-search-wrap")) {
     appState.metricSearchOpen = false;
@@ -418,11 +422,28 @@ function getSearchMatchedMetrics() {
   });
 }
 
+function positionMetricSearchResults() {
+  if (metricSearchResults.classList.contains("hidden")) return;
+  const rect = metricSearchInput.getBoundingClientRect();
+  const viewportPadding = 16;
+  const preferredWidth = Math.min(620, window.innerWidth - viewportPadding * 2);
+  const availableRight = window.innerWidth - rect.left - viewportPadding;
+  const width = Math.max(rect.width, Math.min(preferredWidth, availableRight));
+  metricSearchResults.style.top = `${Math.round(rect.bottom + 8)}px`;
+  metricSearchResults.style.left = `${Math.round(rect.left)}px`;
+  metricSearchResults.style.width = `${Math.round(width)}px`;
+  metricSearchResults.style.maxHeight = `${Math.max(180, Math.round(window.innerHeight - rect.bottom - 24))}px`;
+}
+
 function renderMetricSearchResults() {
   const term = appState.metricSearchTerm.trim();
   if (!appState.metricSearchOpen || !term) {
     metricSearchResults.classList.add("hidden");
     metricSearchResults.innerHTML = "";
+    metricSearchResults.style.top = "";
+    metricSearchResults.style.left = "";
+    metricSearchResults.style.width = "";
+    metricSearchResults.style.maxHeight = "";
     return;
   }
 
@@ -430,6 +451,7 @@ function renderMetricSearchResults() {
   if (!matches.length) {
     metricSearchResults.innerHTML = '<div class="metric-search-option"><span class="metric-search-title">No matching metrics</span></div>';
     metricSearchResults.classList.remove("hidden");
+    positionMetricSearchResults();
     return;
   }
 
@@ -446,6 +468,7 @@ function renderMetricSearchResults() {
     metricSearchResults.appendChild(option);
   });
   metricSearchResults.classList.remove("hidden");
+  positionMetricSearchResults();
 }
 
 function applyMetricSearchSelection(metric) {

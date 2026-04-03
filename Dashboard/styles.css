@@ -175,19 +175,10 @@ button {
   align-self: start;
   min-width: 0;
   max-height: calc(100vh - 40px);
-  overflow: visible;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 18px;
-  z-index: 20;
-}
-
-.sidebar-scroll {
-  min-height: 0;
-  max-height: 100%;
   overflow-y: auto;
   overflow-x: visible;
   padding-right: 6px;
+  z-index: 20;
 }
 
 .content {
@@ -210,11 +201,6 @@ button {
   overflow: visible;
   position: relative;
   z-index: 30;
-  margin-bottom: 0;
-}
-
-.sidebar-scroll > .card:last-child {
-  margin-bottom: 0;
 }
 
 h2,
@@ -274,10 +260,9 @@ input[type="text"] {
 }
 
 .metric-search-results {
-  position: absolute;
-  top: calc(100% + 8px);
+  position: fixed;
+  top: 0;
   left: 0;
-  right: auto;
   width: min(620px, calc(100vw - 56px));
   z-index: 60;
   display: grid;
