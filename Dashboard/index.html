@@ -33,10 +33,10 @@
       <section id="performancePanel" class="panel active" role="tabpanel">
         <div class="layout">
           <aside class="sidebar">
-            <section class="card">
+            <section class="card metric-selector-card">
               <div class="card-head">
                 <div>
-                  <h2>Metric View</h2>
+                  <h2>Metric Selector</h2>
                 </div>
               </div>
               <div class="control-stack">
@@ -46,6 +46,13 @@
                     <option value="single">Single metric</option>
                     <option value="compare">Compare multiple metrics</option>
                   </select>
+                </label>
+                <label class="search-label">
+                  Search Metrics
+                  <div class="metric-search-wrap">
+                    <input id="metricSearchInput" type="text" placeholder="Search across all topics" autocomplete="off" />
+                    <div id="metricSearchResults" class="metric-search-results hidden"></div>
+                  </div>
                 </label>
                 <label id="metricGroupLabel">
                   Topic
@@ -248,7 +255,7 @@
 
             <section class="card">
               <div class="table-head">
-                <h2>Appropriations table</h2>
+                <h2 id="appropriationTableTitle">Appropriations table</h2>
               </div>
               <div class="table-wrap">
                 <table id="appropriationTable">
