@@ -71,6 +71,7 @@ const SCHOOL_COLORS = {
   "University of Michigan-Flint": "#005c8f",
   "Wayne State University": "#0c5449",
   "Western Michigan University": "#532e1f",
+  "MI avg": "#4f5d75",
 };
 
 const FALLBACK_COLORS = ["#1d7f7a", "#7b4cc9", "#a44a3f", "#0e6db6", "#8b6f3c"];
@@ -112,6 +113,7 @@ const SCHOOL_CODES = {
   "University of Michigan-Flint": "UM-F",
   "Wayne State University": "WSU",
   "Western Michigan University": "WMU",
+  "MI avg": "MI Avg",
 };
 
 const APPROPRIATION_META = [
@@ -324,7 +326,7 @@ function hydrateAppropriations() {
     const cleanRows = rows
       .map((row) => {
         const institution = resolveInstitutionName(row.Institution || row.institution || row.INSTNM);
-        if (!institution || institution === "MI avg") return null;
+        if (!institution) return null;
         const values = {};
         const years = [];
         Object.entries(row).forEach(([key, value]) => {
