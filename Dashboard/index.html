@@ -15,11 +15,11 @@
             <h1>Michigan Public University Dashboard</h1>
           </div>
           <nav class="tab-bar tab-bar-header" role="tablist" aria-label="Dashboard sections">
-            <button id="performanceTab" class="tab-btn active" type="button" role="tab" aria-selected="true">
+            <button id="performanceTab" class="tab-btn" type="button" role="tab" aria-selected="false">
               <span class="tab-btn-title">Performance</span>
               <span class="tab-btn-copy">Metrics dashboard</span>
             </button>
-            <button id="appropriationsTab" class="tab-btn" type="button" role="tab" aria-selected="false">
+            <button id="appropriationsTab" class="tab-btn active" type="button" role="tab" aria-selected="true">
               <span class="tab-btn-title">Appropriations</span>
               <span class="tab-btn-copy">Funding history</span>
             </button>
@@ -30,7 +30,7 @@
         </p>
       </header>
 
-      <section id="performancePanel" class="panel active" role="tabpanel">
+      <section id="performancePanel" class="panel" role="tabpanel" hidden>
         <div class="layout">
           <aside class="sidebar">
             <section class="card metric-selector-card">
@@ -177,7 +177,7 @@
         </div>
       </section>
 
-      <section id="appropriationsPanel" class="panel" role="tabpanel" hidden>
+      <section id="appropriationsPanel" class="panel active" role="tabpanel">
         <div class="layout">
           <aside class="sidebar">
             <section class="card">

@@ -264,6 +264,7 @@ function initialize() {
   renderPerformanceControls();
   renderPerformance();
   renderAppropriations();
+  setTab("appropriations");
 }
 
 function hydratePerformance() {
