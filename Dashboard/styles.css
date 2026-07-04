@@ -69,6 +69,7 @@ h1 {
   margin: 0 0 10px;
   font-size: clamp(2.4rem, 4vw, 4.2rem);
   line-height: 1.02;
+  overflow-wrap: anywhere;
 }
 
 .hero-copy,
@@ -191,6 +192,8 @@ button {
 .content {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .card {
@@ -567,6 +570,9 @@ input[type="text"] {
 .chart-wrap {
   position: relative;
   margin-top: 14px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .compare-metric-grid {
@@ -614,6 +620,8 @@ input[type="text"] {
 canvas {
   display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 360px;
   border-radius: 18px;
   background:
@@ -641,6 +649,8 @@ canvas {
   margin-top: 14px;
   max-height: 520px;
   max-width: 100%;
+  min-width: 0;
+  width: 100%;
   overscroll-behavior-x: contain;
 }
 
@@ -740,16 +750,21 @@ tbody tr:hover td:first-child {
 
   .button-row {
     width: 100%;
+    flex-wrap: wrap;
+    white-space: normal;
   }
 
   .button-row > button {
     flex: 1 1 0;
+    min-width: 0;
   }
 }
 
 @media (max-width: 720px) {
   .page-shell {
     padding: 20px 12px 36px;
+    width: 100%;
+    max-width: 100%;
   }
 
   h1 {
@@ -782,6 +797,17 @@ tbody tr:hover td:first-child {
   .card {
     padding: 16px;
     border-radius: 20px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .panel,
+  .layout,
+  .content,
+  .chart-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .card-head,
@@ -804,7 +830,8 @@ tbody tr:hover td:first-child {
   }
 
   canvas {
-    height: 250px;
+    height: 230px;
+    border-radius: 16px;
   }
 
   .mini-chart-card {

@@ -1078,12 +1078,11 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
     return;
   }
 
-  const padding = mode === "compare"
-    ? { top: 20, right: 14, bottom: 14, left: 28 }
-    : { top: 24, right: 18, bottom: 56, left: 82 };
+  const padding = getChartPadding(mode, "line", cssWidth);
   const chartWidth = cssWidth - padding.left - padding.right;
   const chartHeight = cssHeight - padding.top - padding.bottom;
-  const axisFont = mode === "compare" ? "13px Inter, sans-serif" : "12px Inter, sans-serif";
+  const isCompact = isCompactChartWidth(cssWidth);
+  const axisFont = mode === "compare" ? "13px Inter, sans-serif" : `${isCompact ? 11 : 12}px Inter, sans-serif`;
   const values = rows.flatMap((row) => years.map((year) => row.values[year])).filter((value) => Number.isFinite(value));
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -1102,7 +1101,7 @@ function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
       ctx.fillStyle = "#5e6d84";
       ctx.font = axisFont;
       ctx.textAlign = "right";
-      ctx.fillText(formatAxisTickValue(value, metric, mode), padding.left - 10, y + 4);
+      ctx.fillText(formatAxisTickValue(value, metric, mode, isCompact), padding.left - 8, y + 4);
       ctx.textAlign = "left";
     }
   }
@@ -1208,12 +1207,11 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
     return;
   }
 
-  const padding = mode === "compare"
-    ? { top: 20, right: 14, bottom: 34, left: 28 }
-    : { top: 24, right: 18, bottom: 84, left: 82 };
+  const padding = getChartPadding(mode, "bar", cssWidth);
   const chartWidth = cssWidth - padding.left - padding.right;
   const chartHeight = cssHeight - padding.top - padding.bottom;
-  const axisFont = mode === "compare" ? "13px Inter, sans-serif" : "12px Inter, sans-serif";
+  const isCompact = isCompactChartWidth(cssWidth);
+  const axisFont = mode === "compare" ? "13px Inter, sans-serif" : `${isCompact ? 11 : 12}px Inter, sans-serif`;
   const max = Math.max(...bars.map((bar) => bar.value));
   const scale = niceScale(0, max, 5);
   const stepWidth = chartWidth / bars.length;
@@ -1236,7 +1234,7 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
       ctx.fillStyle = "#5e6d84";
       ctx.font = axisFont;
       ctx.textAlign = "right";
-      ctx.fillText(formatAxisTickValue(value, metric, mode), padding.left - 10, y + 4);
+      ctx.fillText(formatAxisTickValue(value, metric, mode, isCompact), padding.left - 8, y + 4);
       ctx.textAlign = "left";
     }
   }
@@ -1262,7 +1260,7 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#5e6d84";
-    ctx.font = mode === "compare" ? "13px Inter, sans-serif" : "12px Inter, sans-serif";
+    ctx.font = mode === "compare" ? "13px Inter, sans-serif" : `${isCompact ? 11 : 12}px Inter, sans-serif`;
     ctx.translate(centerX, padding.top + chartHeight + 16);
     ctx.rotate(mode === "compare" ? -Math.PI / 6 : -Math.PI / 4);
     ctx.textAlign = "right";
@@ -1284,6 +1282,26 @@ function drawBarChart(canvas, tooltip, years, rows, metric, mode) {
     barWidth,
     stepWidth,
   });
+}
+
+function isCompactChartWidth(width) {
+  return width < 680;
+}
+
+function getChartPadding(mode, chartType, width) {
+  if (mode === "compare") {
+    return chartType === "bar"
+      ? { top: 20, right: 14, bottom: 34, left: 28 }
+      : { top: 20, right: 14, bottom: 14, left: 28 };
+  }
+  if (!isCompactChartWidth(width)) {
+    return chartType === "bar"
+      ? { top: 24, right: 18, bottom: 84, left: 82 }
+      : { top: 24, right: 18, bottom: 56, left: 82 };
+  }
+  return chartType === "bar"
+    ? { top: 18, right: 10, bottom: 64, left: 50 }
+    : { top: 18, right: 10, bottom: 44, left: 50 };
 }
 
 function getVisibleYears(years, rows) {
@@ -1518,19 +1536,37 @@ function formatMetricValue(value, metric, numericInput = false) {
   return number.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function formatAxisTickValue(value, metric, mode = "performance") {
+function formatAxisTickValue(value, metric, mode = "performance", compact = false) {
   if (!Number.isFinite(value)) return "";
   const format = metric.value_unit === "USD" || metric.format === "currency"
     ? "currency"
     : metric.value_unit === "pct" || metric.format === "percent"
       ? "percent"
       : metric.format || "number";
-  if (format === "currency") return `$${Math.round(value).toLocaleString()}`;
+  if (format === "currency") {
+    if (compact) return formatCompactCurrency(value);
+    return `$${Math.round(value).toLocaleString()}`;
+  }
   if (format === "percent") {
     const percentValue = Math.abs(value) <= 1 ? value * 100 : value;
     return mode === "compare" ? `${Math.round(percentValue)}` : `${Math.round(percentValue)}%`;
   }
+  if (compact && Math.abs(value) >= 1000) {
+    return new Intl.NumberFormat(undefined, {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
   return Math.round(value).toLocaleString();
+}
+
+function formatCompactCurrency(value) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: Math.abs(value) >= 1000000 ? 1 : 0,
+  }).format(value);
 }
 
 function inferMetricUnit(metricName) {
