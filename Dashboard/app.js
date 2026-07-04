@@ -116,6 +116,8 @@ const SCHOOL_CODES = {
   "MI avg": "MI Avg",
 };
 
+const MI_AVERAGE_INSTITUTION = "MI avg";
+
 const APPROPRIATION_META = [
   {
     key: "appropriations",
@@ -346,9 +348,8 @@ function hydrateAppropriations() {
 
     const yearSet = new Set();
     cleanRows.forEach((row) => row.years.forEach((year) => yearSet.add(year)));
-    const institutions = Array.from(new Set(cleanRows.map((row) => row.institution))).sort((a, b) =>
-      a.localeCompare(b)
-    );
+    cleanRows.sort(compareAppropriationInstitutions);
+    const institutions = Array.from(new Set(cleanRows.map((row) => row.institution))).sort(compareAppropriationInstitutionNames);
     appState.appropriationDatasets.set(meta.key, {
       ...meta,
       rows: cleanRows,
@@ -1018,6 +1019,7 @@ function renderAppropriationChart() {
   const dataset = getAppropriationDataset();
   const rows = dataset.rows
     .filter((row) => appState.selectedAppropriationInstitutions.has(row.institution))
+    .sort(compareAppropriationInstitutions)
     .map((row) => ({
       institution: row.institution,
       values: row.values,
@@ -1038,7 +1040,7 @@ function renderAppropriationTable() {
   appropriationTableTitle.textContent = `${dataset.label} table`;
   const rows = dataset.rows
     .filter((row) => appState.selectedAppropriationInstitutions.has(row.institution))
-    .sort((a, b) => a.institution.localeCompare(b.institution));
+    .sort(compareAppropriationInstitutions);
   const years = getVisibleYears(
     dataset.years.filter((year) => appState.selectedAppropriationYears.has(year)),
     rows
@@ -1606,6 +1608,17 @@ function compareTopicGroups(a, b) {
   const safeA = aIndex === -1 ? TOPIC_ORDER.length : aIndex;
   const safeB = bIndex === -1 ? TOPIC_ORDER.length : bIndex;
   if (safeA !== safeB) return safeA - safeB;
+  return String(a).localeCompare(String(b));
+}
+
+function compareAppropriationInstitutions(a, b) {
+  return compareAppropriationInstitutionNames(a.institution, b.institution);
+}
+
+function compareAppropriationInstitutionNames(a, b) {
+  const aIsAverage = a === MI_AVERAGE_INSTITUTION;
+  const bIsAverage = b === MI_AVERAGE_INSTITUTION;
+  if (aIsAverage !== bIsAverage) return aIsAverage ? 1 : -1;
   return String(a).localeCompare(String(b));
 }
 
