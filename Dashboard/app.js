@@ -712,6 +712,7 @@ function renderPerformanceChart() {
 function renderPerformanceTable() {
   const metric = getSelectedMetricMeta();
   if (!metric) {
+    setCompactYearTable(performanceTable, 0);
     const thead = performanceTable.querySelector("thead");
     const tbody = performanceTable.querySelector("tbody");
     thead.innerHTML = "";
@@ -726,6 +727,7 @@ function renderPerformanceTable() {
     getPerformanceYearsForMetric().filter((year) => appState.selectedYears.has(year)),
     rows
   );
+  setCompactYearTable(performanceTable, years.length);
   const thead = performanceTable.querySelector("thead");
   const tbody = performanceTable.querySelector("tbody");
   thead.innerHTML = "";
@@ -1045,6 +1047,7 @@ function renderAppropriationTable() {
     dataset.years.filter((year) => appState.selectedAppropriationYears.has(year)),
     rows
   );
+  setCompactYearTable(appropriationTable, years.length);
   const thead = appropriationTable.querySelector("thead");
   const tbody = appropriationTable.querySelector("tbody");
   thead.innerHTML = "";
@@ -1059,6 +1062,10 @@ function renderAppropriationTable() {
       .join("")}`;
     tbody.appendChild(tr);
   });
+}
+
+function setCompactYearTable(table, yearCount) {
+  table.classList.toggle("compact-year-table", yearCount > 0 && yearCount <= 3);
 }
 
 function drawLineChart(canvas, tooltip, years, rows, metric, mode) {
