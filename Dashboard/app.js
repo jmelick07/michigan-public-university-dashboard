@@ -84,13 +84,17 @@ const INSTITUTION_ALIASES = {
   LSSU: "Lake Superior State University",
   MSU: "Michigan State University",
   MTU: "Michigan Technological University",
+  "Michigan Tech University": "Michigan Technological University",
   NMU: "Northern Michigan University",
   OU: "Oakland University",
   SVSU: "Saginaw Valley State University",
+  "University of Michigan Ann Arbor": "University of Michigan-Ann Arbor",
   "UM A": "University of Michigan-Ann Arbor",
   "UM-AA": "University of Michigan-Ann Arbor",
+  "University of Michigan Dearborn": "University of Michigan-Dearborn",
   "UM D": "University of Michigan-Dearborn",
   "UM-D": "University of Michigan-Dearborn",
+  "University of Michigan Flint": "University of Michigan-Flint",
   "UM F": "University of Michigan-Flint",
   "UM-F": "University of Michigan-Flint",
   WSU: "Wayne State University",
@@ -739,7 +743,7 @@ function renderPerformanceTable() {
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${escapeHtml(row.institution)}</td>${years
+    tr.innerHTML = `<td title="${escapeHtml(row.institution)}">${escapeHtml(shortLabel(row.institution))}</td>${years
       .map((year) => `<td>${formatMetricValue(row.values[year], row.metric)}</td>`)
       .join("")}`;
     tbody.appendChild(tr);
@@ -833,7 +837,7 @@ function renderCompareMetricTable(metrics) {
     .sort((a, b) => a.localeCompare(b))
     .forEach((institution) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(institution)}</td>${metricContexts
+      tr.innerHTML = `<td title="${escapeHtml(institution)}">${escapeHtml(shortLabel(institution))}</td>${metricContexts
         .map(({ metric, valueByInstitution }) => `<td>${formatMetricValue(valueByInstitution.get(institution), metric)}</td>`)
         .join("")}`;
       tbody.appendChild(tr);
@@ -1518,7 +1522,7 @@ function shouldDrawAxisYearLabel(years, index, mode) {
 }
 
 function formatChartInstitutionLabel(institution, mode) {
-  return mode === "compare" ? shortLabel(institution) : institution;
+  return shortLabel(institution);
 }
 
 function getMetricDisplayMode(metric) {
