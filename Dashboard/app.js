@@ -1622,7 +1622,7 @@ function inferMetricGroup(metricName, source) {
 function normalizeTopic(topic) {
   const value = String(topic || "").trim().toLowerCase();
   if (!value) return "Other";
-  if (value === "access") return "Students";
+  if (["access", "enrollment", "students"].includes(value)) return "Students";
   return normalizeTopicFromName(value);
 }
 
@@ -1640,6 +1640,9 @@ function normalizeTopicFromName(lower) {
   if (lower.includes("retention")) return "Outcomes";
   if (lower.includes("graduation")) return "Outcomes";
   if (lower.includes("distance education")) return "Students";
+  if (lower.includes("headcount")) return "Students";
+  if (lower.includes("fyes")) return "Students";
+  if (lower.includes("enrollment")) return "Students";
   if (lower.includes("first-time undergraduates")) return "Students";
   if (lower.includes("income band")) return "Students";
   return "Other";
@@ -1725,6 +1728,14 @@ function metricOrderKey(metricName) {
   }
   if (lower.includes("foreign countries")) {
     return { group: "14_residency_foreign", rank: 0 };
+  }
+  if (lower.includes("headcount")) {
+    const rank = lower.includes("resident") && !lower.includes("nonresident") ? 0 : 1;
+    return { group: "14a_heidi_headcount", rank };
+  }
+  if (lower.includes("fyes")) {
+    const rank = lower.includes("resident") && !lower.includes("nonresident") ? 0 : 1;
+    return { group: "14b_heidi_fyes", rank };
   }
   if (lower.includes("income band")) {
     const match =
